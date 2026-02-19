@@ -208,6 +208,79 @@ export interface Database {
           completed_at?: string | null
         }
       }
+      integration_sync_log: {
+        Row: {
+          id: string
+          user_id: string
+          integration_type: string
+          integration_id: string | null
+          status: string
+          last_sync_at: string | null
+          next_refresh_at: string | null
+          error_message: string | null
+          metadata: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          integration_type: string
+          integration_id?: string | null
+          status?: string
+          last_sync_at?: string | null
+          next_refresh_at?: string | null
+          error_message?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          integration_type?: string
+          integration_id?: string | null
+          status?: string
+          last_sync_at?: string | null
+          next_refresh_at?: string | null
+          error_message?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      integration_audit_log: {
+        Row: {
+          id: string
+          user_id: string
+          integration_type: string
+          action: string
+          status: string
+          details: Record<string, unknown>
+          ip_address: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          integration_type: string
+          action: string
+          status?: string
+          details?: Record<string, unknown>
+          ip_address?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          integration_type?: string
+          action?: string
+          status?: string
+          details?: Record<string, unknown>
+          ip_address?: string | null
+          created_at?: string
+        }
+      }
       openclaw_source: {
         Row: {
           id: string
@@ -320,5 +393,32 @@ export interface OpenClawSource {
   title?: string | null
   snippet?: string | null
   snapshot_path?: string | null
+  created_at: string
+}
+
+export type IntegrationStatus = 'connected' | 'disconnected' | 'error' | 'refreshing'
+
+export interface IntegrationSyncLog {
+  id: string
+  user_id: string
+  integration_type: string
+  integration_id: string | null
+  status: string
+  last_sync_at: string | null
+  next_refresh_at: string | null
+  error_message: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface IntegrationAuditLog {
+  id: string
+  user_id: string
+  integration_type: string
+  action: string
+  status: string
+  details: Record<string, unknown>
+  ip_address: string | null
   created_at: string
 }

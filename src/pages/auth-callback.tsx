@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { createGoogleIntegration } from '@/services/google-integration-gmail-calendar-service'
+import { logAudit } from '@/services/integrations-service'
 
 export function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -50,6 +51,9 @@ export function AuthCallbackPage() {
               'Gmail & Calendar',
               'Connected for deadlines, briefs, and inbox items'
             )
+            await logAudit('google_gmail_calendar', 'connect', 'success', {
+              source: 'oauth_callback',
+            })
             toast.success('Google connected successfully')
           }
         } else {

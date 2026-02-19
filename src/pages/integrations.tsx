@@ -1,50 +1,118 @@
-import { Check, ExternalLink } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { GoogleIntegrationGmailCalendar } from '@/components/google-integration-gmail-calendar'
-
-const integrations = [
-  { name: 'YouTube', desc: 'Analytics & publishing', connected: false },
-  { name: 'Instagram', desc: 'Content & insights', connected: false },
-  { name: 'Dropbox', desc: 'File sync', connected: false },
-]
+import { Plug, Instagram, Twitter, Cloud } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import {
+  GoogleIntegrationCard,
+  YouTubeIntegrationCard,
+  StorageIntegrationCard,
+  IntegrationStubCard,
+  IntegrationHealthPanel,
+  IntegrationAuditLog,
+} from '@/components/integrations'
+import { getSyncLogs, getAuditLogs } from '@/services/integrations-service'
+import { useAuth } from '@/hooks/use-auth'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function IntegrationsPage() {
+  const { user } = useAuth()
+
+  const { data: syncLogs = [] } = useQuery({
+    queryKey: ['integration-sync-all'],
+    queryFn: async () => {
+      const { logs } = await getSyncLogs()
+      return logs
+    },
+    enabled: !!user?.id,
+  })
+
+  const { data: auditLogs = [], isLoading: auditLoading } = useQuery({
+    queryKey: ['integration-audit'],
+    queryFn: async () => {
+      const { logs } = await getAuditLogs(50)
+      return logs
+    },
+    enabled: !!user?.id,
+  })
+
+  const healthIssues = syncLogs
+    .filter((log) => log.error_message)
+    .map((log) => ({
+      id: log.id,
+      integrationType: log.integration_type,
+      message: log.error_message ?? 'Unknown error',
+      severity: 'error' as const,
+      timestamp: log.updated_at,
+    }))
+
+  const lastSyncByType: Record<string, string> = {}
+  syncLogs.forEach((log) => {
+    if (log.last_sync_at) {
+      lastSyncByType[log.integration_type] = log.last_sync_at
+    }
+  })
+
   return (
-    <div className="space-y-6 animate-in-up">
+    <div className="space-y-8 animate-in-up">
       <div>
-        <h1 className="text-2xl font-bold">Integrations</h1>
-        <p className="text-muted-foreground">
-          Manage third-party connections for deadlines, briefs, and workflow
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <Plug className="h-7 w-7 text-muted-foreground" />
+          Integrations
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Connect and manage third-party integrations. View sync health, reconnect, or disconnect
+          with safe revocation.
         </p>
       </div>
 
-      <div className="space-y-6">
-        <GoogleIntegrationGmailCalendar />
-        <div className="grid gap-4 sm:grid-cols-2">
-          {integrations.map((int) => (
-            <Card key={int.name} className="transition-all duration-300 hover:shadow-card-hover">
-              <CardContent className="flex items-center justify-between p-4">
-                <div>
-                  <div className="font-medium">{int.name}</div>
-                  <div className="text-sm text-muted-foreground">{int.desc}</div>
-                </div>
-                {int.connected ? (
-                  <div className="flex items-center gap-2 text-sm text-green-500">
-                    <Check className="h-4 w-4" />
-                    Connected
-                  </div>
-                ) : (
-                  <Button size="sm" variant="outline" disabled>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Coming soon
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <Tabs defaultValue="integrations" className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="health">Health</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="integrations" className="space-y-8">
+          <section>
+            <h2 className="mb-4 text-lg font-semibold">Connected services</h2>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <GoogleIntegrationCard />
+              <YouTubeIntegrationCard />
+              <StorageIntegrationCard />
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-lg font-semibold">Coming soon</h2>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <IntegrationStubCard
+                title="Instagram"
+                description="Content & insights from Instagram"
+                icon={<Instagram className="h-6 w-6 text-muted-foreground" />}
+              />
+              <IntegrationStubCard
+                title="X (Twitter)"
+                description="Posts and analytics from X"
+                icon={<Twitter className="h-6 w-6 text-muted-foreground" />}
+              />
+              <IntegrationStubCard
+                title="Dropbox"
+                description="File sync and storage"
+                icon={<Cloud className="h-6 w-6 text-muted-foreground" />}
+              />
+            </div>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="health">
+          <IntegrationHealthPanel
+            issues={healthIssues}
+            lastSyncByType={Object.keys(lastSyncByType).length > 0 ? lastSyncByType : undefined}
+          />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <IntegrationAuditLog logs={auditLogs} isLoading={auditLoading} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
