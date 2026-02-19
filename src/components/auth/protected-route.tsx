@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 
 interface ProtectedRouteProps {
@@ -11,8 +12,21 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      <div
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4"
+        role="status"
+        aria-live="polite"
+        aria-label="Verifying session"
+        aria-busy="true"
+      >
+        <Loader2
+          className="h-10 w-10 animate-spin text-primary"
+          aria-hidden="true"
+        />
+        <p className="text-sm font-medium text-muted-foreground">
+          Verifying session...
+        </p>
+        <span className="sr-only">Verifying your session. Please wait.</span>
       </div>
     )
   }
