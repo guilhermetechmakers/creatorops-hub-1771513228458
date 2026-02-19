@@ -9,9 +9,17 @@ export interface InvoiceHistoryLinkProps {
 
 export function InvoiceHistoryLink({ to = '/dashboard/profile', label = 'Invoice history' }: InvoiceHistoryLinkProps) {
   return (
-    <Button asChild variant="outline" className="w-full transition-all duration-300 hover:scale-[1.02]">
-      <Link to={to} className="flex items-center justify-center gap-2">
-        <FileText className="h-4 w-4" aria-hidden />
+    <Button
+      asChild
+      variant="outline"
+      className="w-full rounded-lg shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+    >
+      <Link
+        to={to}
+        aria-label={`View ${label}`}
+        className="flex items-center justify-center gap-2"
+      >
+        <FileText className="h-4 w-4 shrink-0" aria-hidden />
         {label}
       </Link>
     </Button>
