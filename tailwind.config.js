@@ -38,6 +38,10 @@ export default {
         warning: 'rgb(var(--warning) / <alpha-value>)',
         overlay: 'rgb(var(--overlay) / <alpha-value>)',
       },
+      width: {
+        sidebar: 'var(--sidebar-width)',
+        'sidebar-collapsed': 'var(--sidebar-width-collapsed)',
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },

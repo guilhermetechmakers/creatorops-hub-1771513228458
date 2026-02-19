@@ -31,6 +31,9 @@
     --gradient-end: 160 160 160; /* #A0A0A0 */
     /* Overlay for modals, dialogs, drawers */
     --overlay: 0 0 0;
+    /* Sidebar layout tokens */
+    --sidebar-width: 16rem;
+    --sidebar-width-collapsed: 4.5rem;
   }
 
   * {
