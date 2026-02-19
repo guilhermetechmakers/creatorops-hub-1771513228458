@@ -8,6 +8,7 @@ export interface SummaryAndCTAProps {
   interval?: 'month' | 'year'
   discount?: number
   promoMessage?: string
+  formId?: string
   onCheckout?: () => void
   isLoading?: boolean
   hasError?: boolean
@@ -20,6 +21,7 @@ export function SummaryAndCTA({
   interval = 'month',
   discount = 0,
   promoMessage,
+  formId,
   onCheckout,
   isLoading = false,
   hasError = false,
@@ -80,16 +82,20 @@ export function SummaryAndCTA({
 
         {hasError && (
           <div
+            id="checkout-error"
             className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
             role="alert"
+            aria-live="polite"
           >
             {errorMessage ?? 'Something went wrong. Please try again.'}
           </div>
         )}
 
         <Button
+          type={formId ? 'submit' : 'button'}
+          form={formId}
           className="w-full transition-all duration-300 hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          onClick={onCheckout}
+          onClick={!formId ? onCheckout : undefined}
           disabled={isDisabled}
           aria-label={
             isLoading

@@ -30,6 +30,7 @@ const billingSchema = z.object({
 type BillingForm = z.infer<typeof billingSchema>
 
 export interface PaymentFormProps {
+  formId?: string
   onCouponApply?: (code: string) => Promise<{ valid: boolean; message?: string }>
   onSubmit?: (data: BillingForm) => Promise<void>
   isLoading?: boolean
@@ -83,6 +84,7 @@ function CardInputSection() {
 }
 
 export function PaymentForm({
+  formId = 'checkout-form',
   onCouponApply,
   onSubmit,
   isLoading: _isLoading = false,
@@ -129,12 +131,7 @@ export function PaymentForm({
   }
 
   const onFormSubmit = async (data: BillingForm) => {
-    try {
-      await onSubmit?.(data)
-      toast.success('Payment processed')
-    } catch {
-      toast.error('Payment failed')
-    }
+    await onSubmit?.(data)
   }
 
   return (
@@ -169,6 +166,7 @@ export function PaymentForm({
               onClick={handleCouponApply}
               disabled={couponLoading || couponApplied || !couponCode.trim()}
               isLoading={couponLoading}
+              aria-label={couponApplied ? 'Coupon applied' : 'Apply coupon code'}
             >
               {couponApplied ? 'Applied' : 'Apply'}
             </Button>
@@ -176,13 +174,19 @@ export function PaymentForm({
         </div>
 
         {/* Card input - Stripe Elements */}
-        <div className="space-y-2">
-          <Label>Card details</Label>
+        <div className="space-y-2" role="group" aria-labelledby="card-details-label">
+          <Label id="card-details-label">Card details</Label>
           <CardInputSection />
         </div>
 
         {/* Billing info */}
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+        <form
+          id={formId}
+          onSubmit={handleSubmit(onFormSubmit)}
+          className="space-y-4"
+          aria-label="Billing information"
+          noValidate
+        >
           <div className="space-y-2">
             <Label htmlFor="name">Full name</Label>
             <Input
@@ -190,8 +194,13 @@ export function PaymentForm({
               placeholder="John Doe"
               {...register('name')}
               aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? 'name-error' : undefined}
             />
-            {errors.name && <p className="text-sm text-accent">{errors.name.message}</p>}
+            {errors.name && (
+              <p className="text-sm text-destructive" id="name-error" role="alert">
+                {errors.name.message}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -201,8 +210,13 @@ export function PaymentForm({
               placeholder="john@example.com"
               {...register('email')}
               aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
             />
-            {errors.email && <p className="text-sm text-accent">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-sm text-destructive" id="email-error" role="alert">
+                {errors.email.message}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="addressLine1">Address</Label>
@@ -211,14 +225,22 @@ export function PaymentForm({
               placeholder="123 Main St"
               {...register('addressLine1')}
               aria-invalid={!!errors.addressLine1}
+              aria-describedby={errors.addressLine1 ? 'addressLine1-error' : undefined}
             />
             {errors.addressLine1 && (
-              <p className="text-sm text-accent">{errors.addressLine1.message}</p>
+              <p className="text-sm text-destructive" id="addressLine1-error" role="alert">
+                {errors.addressLine1.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="addressLine2">Address line 2 (optional)</Label>
-            <Input id="addressLine2" placeholder="Apt 4" {...register('addressLine2')} />
+            <Input
+              id="addressLine2"
+              placeholder="Apt 4"
+              {...register('addressLine2')}
+              aria-label="Address line 2 (optional)"
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -228,12 +250,22 @@ export function PaymentForm({
                 placeholder="San Francisco"
                 {...register('city')}
                 aria-invalid={!!errors.city}
+                aria-describedby={errors.city ? 'city-error' : undefined}
               />
-              {errors.city && <p className="text-sm text-accent">{errors.city.message}</p>}
+              {errors.city && (
+              <p className="text-sm text-destructive" id="city-error" role="alert">
+                {errors.city.message}
+              </p>
+            )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State / Province</Label>
-              <Input id="state" placeholder="CA" {...register('state')} />
+              <Input
+                id="state"
+                placeholder="CA"
+                {...register('state')}
+                aria-label="State or province (optional)"
+              />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -244,9 +276,12 @@ export function PaymentForm({
                 placeholder="94102"
                 {...register('postalCode')}
                 aria-invalid={!!errors.postalCode}
+                aria-describedby={errors.postalCode ? 'postalCode-error' : undefined}
               />
               {errors.postalCode && (
-                <p className="text-sm text-accent">{errors.postalCode.message}</p>
+                <p className="text-sm text-destructive" id="postalCode-error" role="alert">
+                  {errors.postalCode.message}
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -256,9 +291,12 @@ export function PaymentForm({
                 placeholder="United States"
                 {...register('country')}
                 aria-invalid={!!errors.country}
+                aria-describedby={errors.country ? 'country-error' : undefined}
               />
               {errors.country && (
-                <p className="text-sm text-accent">{errors.country.message}</p>
+                <p className="text-sm text-destructive" id="country-error" role="alert">
+                  {errors.country.message}
+                </p>
               )}
             </div>
           </div>
