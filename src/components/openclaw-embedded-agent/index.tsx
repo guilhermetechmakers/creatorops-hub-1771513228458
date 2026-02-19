@@ -10,6 +10,7 @@ import {
   FileText,
   Copy,
   Plus,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,10 +26,22 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
   submitResearchJob,
   submitGenerationRequest,
   getJobStatus,
   listJobs,
+  deleteJob,
   formatJobStatus,
   getConfidenceLabel,
 } from '@/services/openclaw-embedded-agentService'
@@ -124,6 +137,22 @@ export function OpenClawEmbeddedAgent({
       queryClient.invalidateQueries({ queryKey: ['openclaw-jobs'] })
       if (result.data?.job) {
         setSelectedJob(result.data.job)
+      }
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteJob,
+    onSuccess: (result) => {
+      if (result.error) {
+        toast.error(result.error.message)
+        return
+      }
+      toast.success('Job deleted')
+      queryClient.invalidateQueries({ queryKey: ['openclaw-jobs'] })
+      if (selectedJob) {
+        setSelectedJob(null)
       }
     },
     onError: (err: Error) => toast.error(err.message),
@@ -421,6 +450,10 @@ export function OpenClawEmbeddedAgent({
                 job={displayJob}
                 onInsert={onInsertOutput ? handleInsert : undefined}
                 onCopy={handleCopy}
+                onDelete={() => {
+                  deleteMutation.mutate(displayJob.id)
+                }}
+                isDeleting={deleteMutation.isPending}
                 expandedSources={expandedSources}
                 onToggleSources={() => setExpandedSources(!expandedSources)}
               />
@@ -496,16 +529,26 @@ function JobDetail({
   job,
   onInsert,
   onCopy,
+  onDelete,
+  isDeleting,
   expandedSources,
   onToggleSources,
 }: {
   job: OpenClawJob
   onInsert?: (content: string) => void
   onCopy: (text: string) => void
+  onDelete?: () => void
+  isDeleting?: boolean
   expandedSources: boolean
   onToggleSources: () => void
 }) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const sources = job.sources ?? []
+
+  const handleDelete = () => {
+    onDelete?.()
+    setDeleteDialogOpen(false)
+  }
   const outputStr =
     job.output && typeof job.output === 'object'
       ? 'summary' in job.output
@@ -522,21 +565,60 @@ function JobDetail({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Badge
-          className={
-            job.status === 'completed'
-              ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-              : job.status === 'failed'
-                ? 'bg-accent/20 text-accent'
-                : 'bg-secondary'
-          }
-        >
-          {formatJobStatus(job.status)}
-        </Badge>
-        {job.confidence_score != null && (
-          <span className="text-sm text-muted-foreground">
-            Confidence: {getConfidenceLabel(job.confidence_score)}
-          </span>
+        <div className="flex items-center gap-2">
+          <Badge
+            className={
+              job.status === 'completed'
+                ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                : job.status === 'failed'
+                  ? 'bg-accent/20 text-accent'
+                  : 'bg-secondary'
+            }
+          >
+            {formatJobStatus(job.status)}
+          </Badge>
+          {job.confidence_score != null && (
+            <span className="text-sm text-muted-foreground">
+              Confidence: {getConfidenceLabel(job.confidence_score)}
+            </span>
+          )}
+        </div>
+        {onDelete && (
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-muted-foreground hover:text-accent"
+                aria-label="Delete job"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this job?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently remove the job and its sources. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-accent hover:bg-accent/90"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Sparkles, Image, FileText } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Sparkles, Image, FileText, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { OpenClawEmbeddedAgent } from '@/components/openclaw-embedded-agent'
@@ -14,6 +15,14 @@ export function ContentStudioPage() {
 
   return (
     <div className="space-y-6 animate-in-up">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/dashboard" className="hover:text-foreground transition-colors">
+          Dashboard
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">Content Studio</span>
+      </nav>
+
       <div>
         <h1 className="text-2xl font-bold">Content Studio</h1>
         <p className="text-muted-foreground">

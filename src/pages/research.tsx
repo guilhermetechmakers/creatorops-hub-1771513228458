@@ -1,4 +1,5 @@
-import { Tag } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Tag, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { OpenClawEmbeddedAgent } from '@/components/openclaw-embedded-agent'
@@ -6,6 +7,14 @@ import { OpenClawEmbeddedAgent } from '@/components/openclaw-embedded-agent'
 export function ResearchPage() {
   return (
     <div className="space-y-6 animate-in-up">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/dashboard" className="hover:text-foreground transition-colors">
+          Dashboard
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">Research</span>
+      </nav>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Research Workspace</h1>

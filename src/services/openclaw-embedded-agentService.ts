@@ -63,6 +63,12 @@ export async function listJobs(params?: {
   return invoke<{ jobs: OpenClawJob[] }>('list-jobs', params ?? {})
 }
 
+export async function deleteJob(
+  jobId: string
+): Promise<InvokeResult<{ success: boolean }>> {
+  return invoke<{ success: boolean }>('delete-job', { jobId })
+}
+
 export async function listAgents(): Promise<{
   data: OpenClawEmbeddedAgent[] | null
   error: Error | null

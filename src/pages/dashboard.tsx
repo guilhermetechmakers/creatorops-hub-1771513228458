@@ -9,6 +9,9 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
+import { useQuery } from '@tanstack/react-query'
+import { listJobs } from '@/services/openclaw-embedded-agentService'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const mockCalendarEvents = [
   { time: '9:00', title: 'Instagram post review' },
@@ -21,10 +24,6 @@ const mockDrafts = [
   { title: 'Tutorial Script v2', channel: 'YouTube', updated: '5h ago' },
 ]
 
-const mockResearch = [
-  { topic: 'Creator economy trends 2025', sources: 8 },
-  { topic: 'Short-form video benchmarks', sources: 5 },
-]
 
 const chartData = [
   { name: 'Mon', posts: 4 },
@@ -35,6 +34,65 @@ const chartData = [
   { name: 'Sat', posts: 2 },
   { name: 'Sun', posts: 1 },
 ]
+
+function RecentResearch() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['openclaw-jobs', 'dashboard'],
+    queryFn: async () => {
+      const result = await listJobs({ limit: 5, offset: 0 })
+      if (result.error) throw result.error
+      return result.data?.jobs ?? []
+    },
+  })
+
+  const jobs = data ?? []
+
+  if (isLoading) {
+    return (
+      <ul className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <li key={i}>
+            <Skeleton className="h-16 w-full rounded-lg" />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  if (error) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Unable to load research. Try again later.
+      </p>
+    )
+  }
+
+  if (jobs.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No research yet. Start a research in the Research workspace.
+      </p>
+    )
+  }
+
+  return (
+    <ul className="space-y-3">
+      {jobs.map((job) => (
+        <li key={job.id}>
+          <Link
+            to="/dashboard/research"
+            className="block rounded-lg border border-border p-3 transition-colors hover:bg-secondary/50"
+          >
+            <div className="font-medium truncate">{job.query}</div>
+            <div className="text-sm text-muted-foreground">
+              {job.type} · {job.status}
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 export function DashboardPage() {
   return (
@@ -215,27 +273,13 @@ export function DashboardPage() {
           <CardTitle>Recent Research</CardTitle>
         </CardHeader>
         <CardContent>
-            <ul className="space-y-3">
-              {mockResearch.map((r) => (
-                <li key={r.topic}>
-                  <Link
-                    to="/dashboard/research"
-                    className="block rounded-lg border border-border p-3 transition-colors hover:bg-secondary/50"
-                  >
-                    <div className="font-medium">{r.topic}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {r.sources} sources captured
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link
-              to="/dashboard/research"
-              className="mt-4 block text-sm font-medium text-accent hover:underline"
-            >
-              View research workspace →
-            </Link>
+          <RecentResearch />
+          <Link
+            to="/dashboard/research"
+            className="mt-4 block text-sm font-medium text-accent hover:underline"
+          >
+            View research workspace →
+          </Link>
         </CardContent>
       </Card>
     </div>

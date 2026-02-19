@@ -1,16 +1,20 @@
 // Supabase Edge Function: OpenClaw API proxy
-// Handles research jobs, structured generation, job status, and usage accounting
+// Handles research jobs, structured generation, job status, usage accounting,
+// provenance capture, webhooks, and safety guardrails
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const DAILY_QUOTA_RESEARCH = 50
 const DAILY_QUOTA_GENERATE = 100
 const MIN_CONFIDENCE = 0.5
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 500
+const WEBHOOK_SECRET = Deno.env.get('OPENCLAW_WEBHOOK_SECRET') ?? ''
 
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-signature',
   }
 }
 
@@ -34,6 +38,27 @@ function rateLimitResponse(retryAfter?: number) {
     },
     429
   )
+}
+
+function log(level: string, message: string, meta?: Record<string, unknown>) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...meta,
+  }
+  console.log(JSON.stringify(entry))
+}
+
+/** Simple hallucination heuristic: require source citations in research output */
+function hasSourceProvenance(summary: string, sourceCount: number): boolean {
+  if (sourceCount === 0) return false
+  const hasCitation = /\[.*?\]|\(.*?\)|source|according to|cited|reference/i.test(summary)
+  return hasCitation || summary.length > 100
+}
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms))
 }
 
 async function checkQuota(
@@ -77,15 +102,13 @@ async function mockResearch(query: string): Promise<{
   sources: Array<{ url: string; title: string; snippet: string }>
   confidence: number
 }> {
-  await new Promise((r) => setTimeout(r, 500))
-  return {
-    summary: `Research summary for "${query}". Key findings and insights based on web sources.`,
-    sources: [
-      { url: 'https://example.com/source1', title: 'Source 1', snippet: 'Relevant excerpt...' },
-      { url: 'https://example.com/source2', title: 'Source 2', snippet: 'Additional context...' },
-    ],
-    confidence: 0.85,
-  }
+  await sleep(500)
+  const summary = `Research summary for "${query}". Key findings and insights based on web sources [1][2].`
+  const sources = [
+    { url: 'https://example.com/source1', title: 'Source 1', snippet: 'Relevant excerpt...' },
+    { url: 'https://example.com/source2', title: 'Source 2', snippet: 'Additional context...' },
+  ]
+  return { summary, sources, confidence: 0.85 }
 }
 
 // Mock generation - in production, call external OpenClaw API
@@ -93,7 +116,7 @@ async function mockGenerate(
   query: string,
   outputType: string
 ): Promise<{ output: unknown; confidence: number }> {
-  await new Promise((r) => setTimeout(r, 300))
+  await sleep(300)
   const output =
     outputType === 'thread'
       ? { posts: [`Post 1 for: ${query}`, `Post 2 for: ${query}`] }
@@ -138,13 +161,17 @@ serve(async (req) => {
       case 'research': {
         const { query } = body
         if (!query || typeof query !== 'string' || query.trim().length === 0) {
+          log('warn', 'Research: invalid query', { userId })
           return errorResponse('query is required and must be a non-empty string')
         }
 
         const quota = await checkQuota(supabaseAdmin, userId, 'research')
         if (!quota.allowed) {
+          log('warn', 'Research: quota exceeded', { userId, used: quota.used, limit: quota.limit })
           return rateLimitResponse(3600)
         }
+
+        log('info', 'Research job submitted', { userId, query: query.trim().slice(0, 80) })
 
         const { data: job, error } = await supabase
           .from('openclaw_job')
@@ -163,7 +190,14 @@ serve(async (req) => {
 
         // Process research (mock - in prod would be async/queue)
         try {
-          const result = await mockResearch(query.trim())
+          let result = await mockResearch(query.trim())
+          let attempts = 1
+          while (attempts < MAX_RETRIES && result.confidence < MIN_CONFIDENCE) {
+            await sleep(RETRY_DELAY_MS * attempts)
+            result = await mockResearch(query.trim())
+            attempts++
+          }
+
           if (result.confidence < MIN_CONFIDENCE) {
             await supabase
               .from('openclaw_job')
@@ -174,7 +208,22 @@ serve(async (req) => {
               })
               .eq('id', job.id)
               .eq('user_id', userId)
+            log('warn', 'Research: low confidence', { jobId: job.id, confidence: result.confidence })
             return errorResponse('Research failed: insufficient confidence', 400, 'LOW_CONFIDENCE')
+          }
+
+          if (!hasSourceProvenance(result.summary, result.sources.length)) {
+            log('warn', 'Research: provenance check failed', { jobId: job.id })
+            await supabase
+              .from('openclaw_job')
+              .update({
+                status: 'failed',
+                error_message: 'Source capture required - output must cite sources',
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', job.id)
+              .eq('user_id', userId)
+            return errorResponse('Research failed: source provenance required', 400, 'PROVENANCE_REQUIRED')
           }
 
           for (const src of result.sources) {
@@ -198,6 +247,7 @@ serve(async (req) => {
             .eq('user_id', userId)
 
           await recordUsage(supabaseAdmin, userId, job.id, 'research', 500)
+          log('info', 'Research completed', { jobId: job.id, sourceCount: result.sources.length })
         } catch (err) {
           await supabase
             .from('openclaw_job')
@@ -229,13 +279,19 @@ serve(async (req) => {
       case 'generate': {
         const { query, outputType = 'caption' } = body
         if (!query || typeof query !== 'string' || query.trim().length === 0) {
+          log('warn', 'Generate: invalid query', { userId })
           return errorResponse('query is required and must be a non-empty string')
         }
+        const validTypes = ['thread', 'script', 'caption']
+        const type = validTypes.includes(outputType) ? outputType : 'caption'
 
         const quota = await checkQuota(supabaseAdmin, userId, 'generate')
         if (!quota.allowed) {
+          log('warn', 'Generate: quota exceeded', { userId, used: quota.used, limit: quota.limit })
           return rateLimitResponse(3600)
         }
+
+        log('info', 'Generate job submitted', { userId, query: query.trim().slice(0, 80), outputType: type })
 
         const { data: job, error } = await supabase
           .from('openclaw_job')
@@ -244,7 +300,7 @@ serve(async (req) => {
             type: 'generate',
             query: query.trim(),
             status: 'processing',
-            metadata: { outputType },
+            metadata: { outputType: type },
           })
           .select()
           .single()
@@ -254,7 +310,7 @@ serve(async (req) => {
         }
 
         try {
-          const result = await mockGenerate(query.trim(), outputType)
+          const result = await mockGenerate(query.trim(), type)
           if (result.confidence < MIN_CONFIDENCE) {
             await supabase
               .from('openclaw_job')
@@ -350,17 +406,72 @@ serve(async (req) => {
       }
 
       case 'webhook': {
-        // Placeholder for async callbacks - verify webhook secret in production
-        const { jobId, status, output, confidence } = body
+        const sig = req.headers.get('x-webhook-signature')
+        if (WEBHOOK_SECRET && sig !== WEBHOOK_SECRET) {
+          log('warn', 'Webhook: invalid signature')
+          return errorResponse('Invalid webhook signature', 401)
+        }
+        const { jobId, status, output, confidence, error } = body
         if (!jobId || !status) {
           return errorResponse('jobId and status required for webhook')
         }
-        // In production: verify signature, update job from external API callback
+
+        const { data: existing } = await supabaseAdmin
+          .from('openclaw_job')
+          .select('id, user_id')
+          .eq('id', jobId)
+          .single()
+
+        if (!existing) {
+          return errorResponse('Job not found', 404)
+        }
+
+        const updates: Record<string, unknown> = {
+          status: String(status),
+          updated_at: new Date().toISOString(),
+        }
+        if (status === 'completed' || status === 'failed') {
+          updates.completed_at = new Date().toISOString()
+        }
+        if (output != null) updates.output = output
+        if (confidence != null) updates.confidence_score = confidence
+        if (error != null) updates.error_message = String(error)
+
+        const { error: updateErr } = await supabaseAdmin
+          .from('openclaw_job')
+          .update(updates)
+          .eq('id', jobId)
+
+        if (updateErr) {
+          log('error', 'Webhook: update failed', { jobId, error: updateErr.message })
+          return errorResponse(updateErr.message, 500)
+        }
+        log('info', 'Webhook processed', { jobId, status })
         return jsonResponse({ received: true })
       }
 
+      case 'delete-job': {
+        const { jobId } = body
+        if (!jobId) {
+          return errorResponse('jobId is required')
+        }
+
+        const { error: delErr } = await supabase
+          .from('openclaw_job')
+          .delete()
+          .eq('id', jobId)
+          .eq('user_id', userId)
+
+        if (delErr) {
+          log('warn', 'Delete job failed', { jobId, userId, error: delErr.message })
+          return errorResponse(delErr.message, 500)
+        }
+        log('info', 'Job deleted', { jobId, userId })
+        return jsonResponse({ success: true })
+      }
+
       default:
-        return errorResponse(`Unknown action: ${action || '(missing)'}. Use: research, generate, job-status, list-jobs`, 400)
+        return errorResponse(`Unknown action: ${action || '(missing)'}. Use: research, generate, job-status, list-jobs, delete-job`, 400)
     }
   } catch (err) {
     return errorResponse(
