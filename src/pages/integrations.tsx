@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Plug, Instagram, Twitter, Cloud } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -14,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function IntegrationsPage() {
   const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState('integrations')
 
   const { data: syncLogs = [] } = useQuery({
     queryKey: ['integration-sync-all'],
@@ -63,11 +65,17 @@ export function IntegrationsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="integrations" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="health">Health</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-3" aria-label="Integrations page tabs">
+          <TabsTrigger value="integrations" aria-label="View connected integrations">
+            Integrations
+          </TabsTrigger>
+          <TabsTrigger value="health" aria-label="View integration health status">
+            Health
+          </TabsTrigger>
+          <TabsTrigger value="audit" aria-label="View integration audit log">
+            Audit Log
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="integrations" className="space-y-8">
@@ -110,7 +118,11 @@ export function IntegrationsPage() {
         </TabsContent>
 
         <TabsContent value="audit">
-          <IntegrationAuditLog logs={auditLogs} isLoading={auditLoading} />
+          <IntegrationAuditLog
+            logs={auditLogs}
+            isLoading={auditLoading}
+            onEmptyAction={() => setActiveTab('integrations')}
+          />
         </TabsContent>
       </Tabs>
     </div>

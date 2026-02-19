@@ -1,4 +1,5 @@
-import { ClipboardList } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ClipboardList, Plug } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -9,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { IntegrationAuditLog as AuditLogType } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -17,6 +19,8 @@ export interface IntegrationAuditLogProps {
   logs: AuditLogType[]
   isLoading?: boolean
   className?: string
+  /** Callback when user clicks the empty state CTA. Use to switch to integrations tab or navigate. */
+  onEmptyAction?: () => void
 }
 
 const actionLabels: Record<string, string> = {
@@ -31,12 +35,20 @@ export function IntegrationAuditLog({
   logs,
   isLoading,
   className,
+  onEmptyAction,
 }: IntegrationAuditLogProps) {
   return (
-    <Card className={cn('animate-in-up transition-all duration-300', className)}>
+    <Card
+      className={cn(
+        'animate-in-up rounded-2xl shadow-card transition-all duration-300',
+        className
+      )}
+      role="region"
+      aria-label="Integration audit log"
+    >
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-muted-foreground" />
+        <div className="flex items-center gap-2" aria-hidden="true">
+          <ClipboardList className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
           <CardTitle>Audit Log</CardTitle>
         </div>
         <CardDescription>
@@ -45,27 +57,64 @@ export function IntegrationAuditLog({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-3" role="status" aria-live="polite" aria-label="Loading audit log">
             {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
         ) : logs.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border py-12 text-center">
-            <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground/50" />
+          <div
+            className="rounded-2xl border border-dashed border-border py-12 text-center shadow-sm"
+            role="status"
+            aria-label="No audit entries yet"
+          >
+            <ClipboardList
+              className="mx-auto h-12 w-12 text-muted-foreground/50"
+              aria-hidden="true"
+            />
             <p className="mt-2 text-sm text-muted-foreground">
-              No audit entries yet. Actions will appear here when you connect or disconnect integrations.
+              No audit entries yet. Actions will appear here when you connect or disconnect
+              integrations.
             </p>
+            {onEmptyAction ? (
+              <Button
+                variant="default"
+                size="default"
+                className="mt-4"
+                onClick={onEmptyAction}
+                aria-label="Connect an integration to see audit entries"
+              >
+                <Plug className="mr-2 h-4 w-4" aria-hidden="true" />
+                Connect integrations
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="default"
+                className="mt-4"
+                asChild
+                aria-label="Go to integrations to connect services"
+              >
+                <Link to="/dashboard/integrations" className="inline-flex items-center">
+                  <Plug className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Connect integrations
+                </Link>
+              </Button>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div
+            className="overflow-x-auto rounded-2xl border border-border shadow-sm"
+            role="region"
+            aria-label="Audit log table"
+          >
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Integration</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead scope="col">Integration</TableHead>
+                  <TableHead scope="col">Action</TableHead>
+                  <TableHead scope="col">Status</TableHead>
+                  <TableHead scope="col">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
