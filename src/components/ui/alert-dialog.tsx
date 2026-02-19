@@ -39,20 +39,51 @@ function useAlertDialog() {
   return ctx
 }
 
-interface AlertDialogTriggerProps {
+interface AlertDialogTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean
   children: React.ReactNode
+  /** Required for icon-only triggers; use descriptive text for screen readers */
+  'aria-label'?: string
 }
 
-function AlertDialogTrigger({ asChild, children }: AlertDialogTriggerProps) {
+function AlertDialogTrigger({
+  asChild,
+  children,
+  'aria-label': ariaLabel,
+  className,
+  onClick: onUserClick,
+  ...props
+}: AlertDialogTriggerProps) {
   const { onOpenChange } = useAlertDialog()
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onUserClick?.(e)
+    onOpenChange(true)
+  }
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as React.ReactElement<{ onClick?: () => void }>, {
-      onClick: () => onOpenChange(true),
+    const childProps = (children as React.ReactElement<Record<string, unknown>>).props
+    return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+      ...props,
+      'aria-label': ariaLabel ?? childProps['aria-label'],
+      onClick: (e: React.MouseEvent) => {
+        const childOnClick = childProps.onClick as ((e: React.MouseEvent) => void) | undefined
+        childOnClick?.(e)
+        onOpenChange(true)
+      },
     })
   }
   return (
-    <button type="button" onClick={() => onOpenChange(true)}>
+    <button
+      type="button"
+      className={cn(
+        'inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium',
+        'bg-primary text-primary-foreground hover:bg-primary/90',
+        'transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        className
+      )}
+      aria-label={ariaLabel}
+      onClick={handleClick}
+      {...props}
+    >
       {children}
     </button>
   )
@@ -82,7 +113,7 @@ const AlertDialogContent = React.forwardRef<HTMLDivElement, AlertDialogContentPr
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div
-          className="fixed inset-0 bg-black/50"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm"
           aria-hidden
           onClick={() => onOpenChange(false)}
         />
