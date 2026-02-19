@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   Upload,
   Search,
@@ -124,9 +124,13 @@ function AssetCard({
         <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="secondary" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Actions</span>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-8 w-8"
+                aria-label={`Actions for ${asset.title}`}
+              >
+                <MoreVertical className="h-4 w-4" aria-hidden />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -203,6 +207,14 @@ export function FileLibrary() {
     },
     enabled: !!user?.id,
   })
+
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to load file library. Please try again.', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      })
+    }
+  }, [error])
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
@@ -340,12 +352,13 @@ export function FileLibrary() {
 
   if (error) {
     return (
-      <Card className="border-accent/50">
+      <Card className="border-destructive/50 bg-destructive/5" role="alert">
         <CardContent className="flex flex-col items-center justify-center gap-4 p-12">
-          <p className="text-accent">Failed to load file library. Please try again.</p>
+          <p className="text-destructive">Failed to load file library. Please try again.</p>
           <Button
             variant="outline"
             onClick={() => queryClient.invalidateQueries({ queryKey: ['file-library', user?.id] })}
+            aria-label="Retry loading file library"
           >
             Retry
           </Button>
@@ -366,6 +379,9 @@ export function FileLibrary() {
       </div>
 
       <Card
+        role="button"
+        tabIndex={0}
+        aria-label="Upload files by dropping or clicking to browse"
         className={cn(
           'cursor-pointer border-2 border-dashed transition-all duration-300',
           isDragging ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border hover:border-primary/50'
@@ -373,6 +389,12 @@ export function FileLibrary() {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            fileInputRef.current?.click()
+          }
+        }}
       >
         <CardContent
           className="flex flex-col items-center justify-center py-16"
@@ -383,6 +405,7 @@ export function FileLibrary() {
             type="file"
             multiple
             className="hidden"
+            aria-label="Select files to upload"
             onChange={(e) => {
               const files = e.target.files
               if (files) handleFiles(files)
@@ -402,9 +425,14 @@ export function FileLibrary() {
               fileInputRef.current?.click()
             }}
             disabled={uploadMutation.isPending}
+            aria-label="Upload files"
           >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload files
+            {uploadMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" aria-hidden />
+            )}
+            {uploadMutation.isPending ? 'Uploading...' : 'Upload files'}
           </Button>
         </CardContent>
       </Card>
@@ -419,7 +447,7 @@ export function FileLibrary() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="truncate">{u.file.name}</span>
                     {u.status === 'done' && (
-                      <span className="text-green-600 dark:text-green-400">Done</span>
+                      <span className="text-success">Done</span>
                     )}
                     {u.status === 'error' && (
                       <span className="text-accent">{u.error ?? 'Failed'}</span>
@@ -438,12 +466,13 @@ export function FileLibrary() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
             placeholder="Search assets..."
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search assets"
           />
         </div>
         <div className="flex gap-2">
@@ -472,13 +501,28 @@ export function FileLibrary() {
             'grid gap-4',
             viewMode === 'grid' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'
           )}
+          aria-busy="true"
+          aria-label="Loading file library"
         >
           {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i}>
-              <Skeleton className="aspect-video w-full rounded-t-xl" />
-              <CardContent className="p-3">
-                <Skeleton className="mb-2 h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+            <Card key={i} className={cn(viewMode === 'grid' && 'aspect-square')}>
+              <div
+                className={cn(
+                  'flex items-center justify-center bg-card',
+                  viewMode === 'grid' ? 'aspect-square' : 'h-24'
+                )}
+              >
+                <Skeleton className="h-full w-full rounded-none" />
+              </div>
+              <CardContent className={cn('p-3', viewMode === 'list' && 'flex flex-1 items-center gap-4')}>
+                <div className={cn('min-w-0 flex-1', viewMode === 'list' && 'flex items-center gap-3')}>
+                  <Skeleton className="mb-2 h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <Skeleton className="h-5 w-12 rounded-md" />
+                    <Skeleton className="h-5 w-16 rounded-md" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -495,8 +539,8 @@ export function FileLibrary() {
                 Upload your first file to get started. Add tags and manage versions.
               </p>
             </div>
-            <Button onClick={() => fileInputRef.current?.click()}>
-              <Upload className="mr-2 h-4 w-4" />
+            <Button onClick={() => fileInputRef.current?.click()} aria-label="Upload your first file">
+              <Upload className="mr-2 h-4 w-4" aria-hidden />
               Upload files
             </Button>
           </CardContent>
@@ -631,8 +675,16 @@ function VersionHistoryDialog({
           <p className="text-sm text-muted-foreground">{asset.title}</p>
         </DialogHeader>
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="max-h-64 space-y-2 overflow-y-auto py-4" aria-busy="true" aria-label="Loading version history">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-8 w-16 rounded-md" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="max-h-64 space-y-2 overflow-y-auto py-4">
@@ -689,8 +741,13 @@ function VersionRow({
           variant="outline"
           onClick={onRestore}
           disabled={isRestoring}
+          aria-label={`Restore version ${version.version_number}`}
         >
-          {isRestoring ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Restore'}
+          {isRestoring ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            'Restore'
+          )}
         </Button>
       )}
     </div>
