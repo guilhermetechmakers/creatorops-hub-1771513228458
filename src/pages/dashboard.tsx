@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Calendar, FileEdit, Search, TrendingUp } from 'lucide-react'
+import { Calendar, FileEdit, Search, TrendingUp, RefreshCw, FileSearch, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   AreaChart,
   Area,
@@ -36,7 +37,7 @@ const chartData = [
 ]
 
 function RecentResearch() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['openclaw-jobs', 'dashboard'],
     queryFn: async () => {
       const result = await listJobs({ limit: 5, offset: 0 })
@@ -49,10 +50,10 @@ function RecentResearch() {
 
   if (isLoading) {
     return (
-      <ul className="space-y-3">
+      <ul className="space-y-3" role="list" aria-label="Loading recent research">
         {[1, 2, 3].map((i) => (
           <li key={i}>
-            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg animate-pulse" />
           </li>
         ))}
       </ul>
@@ -61,29 +62,68 @@ function RecentResearch() {
 
   if (error) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Unable to load research. Try again later.
-      </p>
+      <div
+        className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border bg-muted/10 py-12 px-4 text-center"
+        role="alert"
+        aria-label="Failed to load research"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+          <AlertCircle className="h-8 w-8 text-destructive" aria-hidden />
+        </div>
+        <div>
+          <h3 className="font-semibold text-foreground">Unable to load research</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Something went wrong. Please try again.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => refetch()}
+          disabled={isRefetching}
+          aria-label="Retry loading research"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} aria-hidden />
+          {isRefetching ? 'Retrying…' : 'Try again'}
+        </Button>
+      </div>
     )
   }
 
   if (jobs.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No research yet. Start a research in the Research workspace.
-      </p>
+      <div
+        className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border bg-muted/10 py-12 px-4 text-center"
+        role="status"
+        aria-label="No research yet"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <FileSearch className="h-8 w-8 text-muted-foreground" aria-hidden />
+        </div>
+        <div>
+          <h3 className="font-semibold text-foreground">No research yet</h3>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            Start a research in the Research workspace to discover sources and generate content for your drafts.
+          </p>
+        </div>
+        <Button variant="outline" asChild aria-label="Go to research workspace">
+          <Link to="/dashboard/research" className="inline-flex items-center">
+            <Search className="mr-2 h-4 w-4" aria-hidden />
+            Start research
+          </Link>
+        </Button>
+      </div>
     )
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-3" role="list">
       {jobs.map((job) => (
         <li key={job.id}>
           <Link
             to="/dashboard/research"
-            className="block rounded-lg border border-border p-3 transition-colors hover:bg-secondary/50"
+            className="block rounded-lg border border-border p-3 transition-colors duration-200 hover:bg-secondary/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <div className="font-medium truncate">{job.query}</div>
+            <div className="font-medium text-foreground truncate">{job.query}</div>
             <div className="text-sm text-muted-foreground">
               {job.type} · {job.status}
             </div>
@@ -98,7 +138,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-8 animate-in-up">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">
           Your operational overview and quick actions
         </p>
@@ -114,7 +154,7 @@ export function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">28</div>
+            <div className="text-2xl font-bold text-foreground">28</div>
             <p className="text-xs text-muted-foreground">+12% from last week</p>
           </CardContent>
         </Card>
@@ -126,7 +166,7 @@ export function DashboardPage() {
             <FileEdit className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
+            <div className="text-2xl font-bold text-foreground">7</div>
             <p className="text-xs text-muted-foreground">3 due this week</p>
           </CardContent>
         </Card>
@@ -138,7 +178,7 @@ export function DashboardPage() {
             <Search className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">14</div>
+            <div className="text-2xl font-bold text-foreground">14</div>
             <p className="text-xs text-muted-foreground">2 new today</p>
           </CardContent>
         </Card>
@@ -150,7 +190,7 @@ export function DashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold text-foreground">12</div>
             <p className="text-xs text-muted-foreground">Next: Instagram 9am</p>
           </CardContent>
         </Card>
@@ -172,13 +212,13 @@ export function DashboardPage() {
                   <span className="text-sm font-medium text-muted-foreground">
                     {event.time}
                   </span>
-                  <span>{event.title}</span>
+                  <span className="text-foreground">{event.title}</span>
                 </li>
               ))}
             </ul>
             <Link
               to="/dashboard/planner"
-              className="mt-4 block text-sm font-medium text-accent hover:underline"
+              className="mt-4 block text-sm font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:rounded"
             >
               View full calendar →
             </Link>
@@ -196,9 +236,9 @@ export function DashboardPage() {
                 <li key={draft.title}>
                   <Link
                     to="/dashboard/studio"
-                    className="block rounded-lg border border-border p-3 transition-colors hover:bg-secondary/50"
+                    className="block rounded-lg border border-border p-3 transition-colors duration-200 hover:bg-secondary/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <div className="font-medium">{draft.title}</div>
+                    <div className="font-medium text-foreground">{draft.title}</div>
                     <div className="text-sm text-muted-foreground">
                       {draft.channel} · {draft.updated}
                     </div>
@@ -208,7 +248,7 @@ export function DashboardPage() {
             </ul>
             <Link
               to="/dashboard/projects"
-              className="mt-4 block text-sm font-medium text-accent hover:underline"
+              className="mt-4 block text-sm font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:rounded"
             >
               View all projects →
             </Link>
@@ -251,7 +291,7 @@ export function DashboardPage() {
                     contentStyle={{
                       backgroundColor: 'rgb(var(--card))',
                       border: '1px solid rgb(var(--border))',
-                      borderRadius: '8px',
+                      borderRadius: '0.75rem',
                     }}
                   />
                   <Area
@@ -276,7 +316,7 @@ export function DashboardPage() {
           <RecentResearch />
           <Link
             to="/dashboard/research"
-            className="mt-4 block text-sm font-medium text-accent hover:underline"
+            className="mt-4 block text-sm font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:rounded"
           >
             View research workspace →
           </Link>
