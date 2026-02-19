@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -16,6 +18,9 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>
 
 export function LoginPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/dashboard'
   const {
     register,
     handleSubmit,
@@ -25,9 +30,22 @@ export function LoginPage() {
     defaultValues: { email: '', password: '' },
   })
 
-  const onSubmit = async (_data: LoginForm) => {
-    // Placeholder - integrate with auth API
-    await new Promise((r) => setTimeout(r, 500))
+  const onSubmit = async (data: LoginForm) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
+    if (error) {
+      if (error.message.includes('Email not confirmed')) {
+        toast.error('Please verify your email before signing in.')
+        navigate('/email-verification')
+      } else {
+        toast.error(error.message)
+      }
+      return
+    }
+    toast.success('Signed in successfully')
+    navigate(from, { replace: true })
   }
 
   return (
@@ -91,9 +109,41 @@ export function LoginPage() {
               <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" type="button" asChild>
-            <a href="/api/auth/google">Google</a>
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={async () => {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                    scopes: 'email profile',
+                  },
+                })
+                if (error) toast.error(error.message)
+              }}
+            >
+              Google
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={async () => {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'apple',
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                  },
+                })
+                if (error) toast.error(error.message)
+              }}
+            >
+              Apple
+            </Button>
+          </div>
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Link to="/signup" className="font-medium text-foreground hover:underline">

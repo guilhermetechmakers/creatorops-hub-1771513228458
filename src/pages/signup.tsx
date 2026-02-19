@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router-dom'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Mail, Lock, Check } from 'lucide-react'
@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 const signupSchema = z
   .object({
@@ -23,8 +26,10 @@ const signupSchema = z
 type SignupForm = z.infer<typeof signupSchema>
 
 export function SignupPage() {
+  const navigate = useNavigate()
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<SignupForm>({
@@ -37,8 +42,20 @@ export function SignupPage() {
     },
   })
 
-  const onSubmit = async (_data: SignupForm) => {
-    await new Promise((r) => setTimeout(r, 500))
+  const onSubmit = async (data: SignupForm) => {
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Check your email to verify your account')
+    navigate('/email-verification', { state: { email: data.email } })
   }
 
   return (
@@ -101,13 +118,18 @@ export function SignupPage() {
               )}
             </div>
             <div className="flex items-start gap-2">
-              <input
-                type="checkbox"
-                id="acceptTerms"
-                className="mt-1 h-4 w-4 rounded border-input"
-                {...register('acceptTerms')}
+              <Controller
+                name="acceptTerms"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="acceptTerms"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
               />
-              <Label htmlFor="acceptTerms" className="text-sm font-normal">
+              <Label htmlFor="acceptTerms" className="text-sm font-normal cursor-pointer">
                 I agree to the{' '}
                 <Link to="/terms" className="underline hover:text-foreground">
                   Terms of Service
@@ -134,9 +156,41 @@ export function SignupPage() {
               <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" type="button" asChild>
-            <a href="/api/auth/google">Google</a>
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={async () => {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                    scopes: 'email profile',
+                  },
+                })
+                if (error) toast.error(error.message)
+              }}
+            >
+              Google
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={async () => {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'apple',
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                  },
+                })
+                if (error) toast.error(error.message)
+              }}
+            >
+              Apple
+            </Button>
+          </div>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link to="/login" className="font-medium text-foreground hover:underline">

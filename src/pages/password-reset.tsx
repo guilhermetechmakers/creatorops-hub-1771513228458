@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -21,8 +23,15 @@ export function PasswordResetPage() {
     formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  const onSubmit = async (_data: FormData) => {
-    await new Promise((r) => setTimeout(r, 500))
+  const onSubmit = async (data: FormData) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Check your email for the reset link')
   }
 
   if (isSubmitSuccessful) {
