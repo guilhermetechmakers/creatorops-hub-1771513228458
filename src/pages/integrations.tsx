@@ -26,10 +26,17 @@ export function IntegrationsPage() {
     enabled: !!user?.id,
   })
 
-  const { data: auditLogs = [], isLoading: auditLoading } = useQuery({
+  const {
+    data: auditLogs = [],
+    isLoading: auditLoading,
+    isError: auditError,
+    error: auditQueryError,
+    refetch: refetchAuditLogs,
+  } = useQuery({
     queryKey: ['integration-audit'],
     queryFn: async () => {
-      const { logs } = await getAuditLogs(50)
+      const { logs, error } = await getAuditLogs(50)
+      if (error) throw error
       return logs
     },
     enabled: !!user?.id,
@@ -53,13 +60,13 @@ export function IntegrationsPage() {
   })
 
   return (
-    <div className="space-y-8 animate-in-up">
+    <div className="space-y-8 animate-in-up" role="main" aria-labelledby="integrations-heading" aria-describedby="integrations-description">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <Plug className="h-7 w-7 text-muted-foreground" />
+        <h1 className="flex items-center gap-2 text-2xl font-bold" id="integrations-heading">
+          <Plug className="h-7 w-7 text-muted-foreground" aria-hidden />
           Integrations
         </h1>
-        <p className="mt-1 text-muted-foreground">
+        <p className="mt-1 text-muted-foreground" id="integrations-description">
           Connect and manage third-party integrations. View sync health, reconnect, or disconnect
           with safe revocation.
         </p>
@@ -79,8 +86,8 @@ export function IntegrationsPage() {
         </TabsList>
 
         <TabsContent value="integrations" className="space-y-8">
-          <section>
-            <h2 className="mb-4 text-lg font-semibold">Connected services</h2>
+          <section aria-labelledby="connected-services-heading">
+            <h2 id="connected-services-heading" className="mb-4 text-lg font-semibold">Connected services</h2>
             <div className="grid gap-6 lg:grid-cols-2">
               <GoogleIntegrationCard />
               <YouTubeIntegrationCard />
@@ -88,8 +95,8 @@ export function IntegrationsPage() {
             </div>
           </section>
 
-          <section>
-            <h2 className="mb-4 text-lg font-semibold">Coming soon</h2>
+          <section aria-labelledby="coming-soon-heading">
+            <h2 id="coming-soon-heading" className="mb-4 text-lg font-semibold">Coming soon</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <IntegrationStubCard
                 title="Instagram"
@@ -122,7 +129,10 @@ export function IntegrationsPage() {
           <IntegrationAuditLog
             logs={auditLogs}
             isLoading={auditLoading}
+            isError={auditError}
+            errorMessage={auditQueryError instanceof Error ? auditQueryError.message : undefined}
             onEmptyAction={() => setActiveTab('integrations')}
+            onRetry={() => refetchAuditLogs()}
           />
         </TabsContent>
       </Tabs>

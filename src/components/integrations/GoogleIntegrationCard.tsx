@@ -54,6 +54,9 @@ export function GoogleIntegrationCard() {
         toast.error(result.error.message)
       }
     },
+    onError: (err: Error) => {
+      toast.error(err.message ?? 'Failed to connect Google integration')
+    },
   })
 
   const disconnectMutation = useMutation({
@@ -70,6 +73,9 @@ export function GoogleIntegrationCard() {
         queryClient.invalidateQueries({ queryKey: ['integration-audit'] })
         setShowRevokeDialog(false)
       }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? 'Failed to disconnect Google integration')
     },
   })
 
@@ -113,6 +119,7 @@ export function GoogleIntegrationCard() {
             size="sm"
             variant="outline"
             onClick={() => queryClient.invalidateQueries({ queryKey: ['google-integration', user?.id] })}
+            aria-label="Retry loading Google integration"
           >
             Retry
           </Button>
@@ -140,8 +147,9 @@ export function GoogleIntegrationCard() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 transition-transform hover:scale-[1.02]"
+                  aria-label="Open Gmail in new tab"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="h-4 w-4" aria-hidden />
                   Open Gmail
                 </a>
               </Button>
@@ -151,12 +159,13 @@ export function GoogleIntegrationCard() {
                 onClick={() => connectMutation.mutate()}
                 disabled={connectMutation.isPending}
                 className="transition-transform hover:scale-[1.02]"
+                aria-label="Reconnect Google integration"
               >
                 {connectMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                 ) : (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
                     Reconnect
                   </>
                 )}
@@ -167,6 +176,7 @@ export function GoogleIntegrationCard() {
                 className="text-accent hover:bg-accent/10 hover:text-accent transition-transform hover:scale-[1.02]"
                 onClick={() => setShowRevokeDialog(true)}
                 disabled={disconnectMutation.isPending}
+                aria-label="Disconnect Google integration"
               >
                 Disconnect
               </Button>
@@ -176,15 +186,16 @@ export function GoogleIntegrationCard() {
               className="transition-transform hover:scale-[1.02]"
               onClick={() => connectMutation.mutate()}
               disabled={connectMutation.isPending}
+              aria-label="Connect Google Gmail and Calendar integration"
             >
               {connectMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                   Connecting...
                 </>
               ) : (
                 <>
-                  <ExternalLink className="mr-2 h-4 w-4" />
+                  <ExternalLink className="mr-2 h-4 w-4" aria-hidden />
                   Connect Google (Gmail + Calendar)
                 </>
               )}
@@ -216,13 +227,14 @@ export function GoogleIntegrationCard() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel aria-label="Cancel disconnecting Google">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => disconnectMutation.mutate()}
               className="bg-accent text-accent-foreground hover:bg-accent/90"
+              aria-label="Confirm disconnect Google integration"
             >
               {disconnectMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               ) : (
                 'Disconnect'
               )}

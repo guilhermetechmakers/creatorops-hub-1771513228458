@@ -15,6 +15,7 @@ export function StorageIntegrationCard() {
           size="sm"
           disabled
           className="opacity-70 transition-transform hover:scale-[1.02]"
+          aria-label="Storage integration coming soon"
         >
           Coming soon
         </Button>

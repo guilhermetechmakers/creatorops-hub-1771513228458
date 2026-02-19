@@ -47,8 +47,8 @@ export default {
         sm: '0.25rem',
       },
       boxShadow: {
-        card: '0 2px 8px rgba(0, 0, 0, 0.15)',
-        'card-hover': '0 4px 16px rgba(0, 0, 0, 0.2)',
+        card: '0 2px 8px rgb(var(--overlay) / 0.15)',
+        'card-hover': '0 4px 16px rgb(var(--overlay) / 0.2)',
       },
       keyframes: {
         'fade-in': {

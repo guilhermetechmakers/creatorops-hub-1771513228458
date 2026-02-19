@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ClipboardList, Plug } from 'lucide-react'
+import { ClipboardList, Plug, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -18,9 +18,13 @@ import { cn } from '@/lib/utils'
 export interface IntegrationAuditLogProps {
   logs: AuditLogType[]
   isLoading?: boolean
+  isError?: boolean
+  errorMessage?: string
   className?: string
   /** Callback when user clicks the empty state CTA. Use to switch to integrations tab or navigate. */
   onEmptyAction?: () => void
+  /** Callback when user clicks retry in error state. */
+  onRetry?: () => void
 }
 
 const actionLabels: Record<string, string> = {
@@ -34,8 +38,11 @@ const actionLabels: Record<string, string> = {
 export function IntegrationAuditLog({
   logs,
   isLoading,
+  isError,
+  errorMessage,
   className,
   onEmptyAction,
+  onRetry,
 }: IntegrationAuditLogProps) {
   return (
     <Card
@@ -57,30 +64,68 @@ export function IntegrationAuditLog({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-3" role="status" aria-live="polite" aria-label="Loading audit log">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+          <div
+            className="space-y-3"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading audit log"
+            aria-busy="true"
+          >
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
+          </div>
+        ) : isError ? (
+          <div
+            className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-accent/50 bg-accent/5 py-12 px-4 text-center"
+            role="alert"
+            aria-label="Failed to load audit log"
+          >
+            <AlertCircle
+              className="h-12 w-12 text-accent"
+              aria-hidden="true"
+            />
+            <p className="mt-3 text-sm font-medium text-foreground">
+              Failed to load audit log
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {errorMessage ?? 'Something went wrong. Please try again.'}
+            </p>
+            {onRetry && (
+              <Button
+                variant="outline"
+                size="default"
+                className="mt-4"
+                onClick={onRetry}
+                aria-label="Retry loading audit log"
+              >
+                Retry
+              </Button>
+            )}
           </div>
         ) : logs.length === 0 ? (
           <div
-            className="rounded-2xl border border-dashed border-border py-12 text-center shadow-sm"
+            className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 px-4 text-center shadow-sm"
             role="status"
             aria-label="No audit entries yet"
           >
-            <ClipboardList
-              className="mx-auto h-12 w-12 text-muted-foreground/50"
-              aria-hidden="true"
-            />
-            <p className="mt-2 text-sm text-muted-foreground">
-              No audit entries yet. Actions will appear here when you connect or disconnect
-              integrations.
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/30">
+              <ClipboardList
+                className="h-8 w-8 text-muted-foreground"
+                aria-hidden="true"
+              />
+            </div>
+            <p className="mt-4 text-base font-medium text-foreground">
+              No audit entries yet
+            </p>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+              Actions will appear here when you connect, disconnect, or sync integrations. Connect your first integration to get started.
             </p>
             {onEmptyAction ? (
               <Button
                 variant="default"
                 size="default"
-                className="mt-4"
+                className="mt-6 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 onClick={onEmptyAction}
                 aria-label="Connect an integration to see audit entries"
               >
@@ -91,7 +136,7 @@ export function IntegrationAuditLog({
               <Button
                 variant="default"
                 size="default"
-                className="mt-4"
+                className="mt-6 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 asChild
                 aria-label="Go to integrations to connect services"
               >
