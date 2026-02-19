@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -20,6 +22,7 @@ type LoginForm = z.infer<typeof loginSchema>
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null)
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/dashboard'
   const {
     register,
@@ -60,17 +63,22 @@ export function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@example.com"
-                  className="pl-10"
+                  className={cn('pl-10', errors.email && 'border-destructive focus-visible:ring-destructive')}
+                  aria-label="Email address"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   {...register('email')}
                 />
               </div>
               {errors.email && (
-                <p className="text-sm text-accent">{errors.email.message}</p>
+                <p id="email-error" className="text-sm text-destructive" role="alert">
+                  {errors.email.message}
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -84,17 +92,22 @@ export function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
-                  className="pl-10"
+                  className={cn('pl-10', errors.password && 'border-destructive focus-visible:ring-destructive')}
+                  aria-label="Password"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                   {...register('password')}
                 />
               </div>
               {errors.password && (
-                <p className="text-sm text-accent">{errors.password.message}</p>
+                <p id="password-error" className="text-sm text-destructive" role="alert">
+                  {errors.password.message}
+                </p>
               )}
             </div>
             <Button type="submit" className="w-full" isLoading={isSubmitting}>
@@ -114,7 +127,11 @@ export function LoginPage() {
               variant="outline"
               className="w-full"
               type="button"
+              aria-label="Sign in with Google"
+              isLoading={oauthLoading === 'google'}
+              disabled={!!oauthLoading}
               onClick={async () => {
+                setOauthLoading('google')
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
                   options: {
@@ -122,7 +139,10 @@ export function LoginPage() {
                     scopes: 'email profile',
                   },
                 })
-                if (error) toast.error(error.message)
+                if (error) {
+                  toast.error(error.message)
+                  setOauthLoading(null)
+                }
               }}
             >
               Google
@@ -131,14 +151,21 @@ export function LoginPage() {
               variant="outline"
               className="w-full"
               type="button"
+              aria-label="Sign in with Apple"
+              isLoading={oauthLoading === 'apple'}
+              disabled={!!oauthLoading}
               onClick={async () => {
+                setOauthLoading('apple')
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'apple',
                   options: {
                     redirectTo: `${window.location.origin}/auth/callback`,
                   },
                 })
-                if (error) toast.error(error.message)
+                if (error) {
+                  toast.error(error.message)
+                  setOauthLoading(null)
+                }
               }}
             >
               Apple
