@@ -54,12 +54,28 @@ function DropdownMenuTrigger({ asChild, children, className }: DropdownMenuTrigg
 
   const handleClick = () => setOpen(!open)
 
+  const triggerProps = {
+    'aria-haspopup': 'menu' as const,
+    'aria-expanded': open,
+  }
+
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as React.ReactElement<{ ref?: React.Ref<HTMLButtonElement>; onClick?: (e: React.MouseEvent) => void; className?: string }>, {
-      ref: triggerRef as React.Ref<HTMLButtonElement>,
-      onClick: handleClick,
-      className: cn(className, (children as React.ReactElement).props.className),
-    })
+    const childProps = (children as React.ReactElement).props
+    return React.cloneElement(
+      children as React.ReactElement<{
+        ref?: React.Ref<HTMLButtonElement>
+        onClick?: (e: React.MouseEvent) => void
+        className?: string
+        'aria-haspopup'?: string
+        'aria-expanded'?: boolean
+      }>,
+      {
+        ref: triggerRef as React.Ref<HTMLButtonElement>,
+        onClick: handleClick,
+        className: cn(className, childProps.className),
+        ...triggerProps,
+      }
+    )
   }
 
   return (
@@ -68,8 +84,7 @@ function DropdownMenuTrigger({ asChild, children, className }: DropdownMenuTrigg
       type="button"
       onClick={handleClick}
       className={cn(className)}
-      aria-haspopup="menu"
-      aria-expanded={undefined}
+      {...triggerProps}
     >
       {children}
     </button>
@@ -93,7 +108,8 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
         data-dropdown-content
         role="menu"
         className={cn(
-          'absolute z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-card p-1 shadow-card',
+          'absolute z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-card p-1',
+          'shadow-[0_2px_8px_rgb(var(--overlay)/0.15)]',
           'animate-in fade-in duration-200',
           align === 'end' && 'right-0',
           align === 'start' && 'left-0',
