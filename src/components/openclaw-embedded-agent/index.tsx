@@ -11,6 +11,8 @@ import {
   Copy,
   Plus,
   Trash2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,7 +75,13 @@ export function OpenClawEmbeddedAgent({
   const pageSize = 10
   const queryClient = useQueryClient()
 
-  const { data: jobsData, isLoading: jobsLoading } = useQuery({
+  const {
+    data: jobsData,
+    isLoading: jobsLoading,
+    isError: jobsError,
+    error: jobsQueryError,
+    refetch: refetchJobs,
+  } = useQuery({
     queryKey: ['openclaw-jobs', page, jobTypeFilter],
     queryFn: async () => {
       const { data, error } = await listJobs({
@@ -326,10 +334,16 @@ export function OpenClawEmbeddedAgent({
                   Research and generation history with status
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div
+                className="flex gap-2"
+                role="group"
+                aria-label="Filter jobs by type"
+              >
                 <button
                   type="button"
                   onClick={() => setJobTypeFilter(undefined)}
+                  aria-label="Show all job types"
+                  aria-pressed={!jobTypeFilter}
                   className={cn(
                     'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                     !jobTypeFilter ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
@@ -340,6 +354,8 @@ export function OpenClawEmbeddedAgent({
                 <button
                   type="button"
                   onClick={() => setJobTypeFilter('research')}
+                  aria-label="Show research jobs only"
+                  aria-pressed={jobTypeFilter === 'research'}
                   className={cn(
                     'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                     jobTypeFilter === 'research' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
@@ -350,6 +366,8 @@ export function OpenClawEmbeddedAgent({
                 <button
                   type="button"
                   onClick={() => setJobTypeFilter('generate')}
+                  aria-label="Show generation jobs only"
+                  aria-pressed={jobTypeFilter === 'generate'}
                   className={cn(
                     'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                     jobTypeFilter === 'generate' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
@@ -362,15 +380,62 @@ export function OpenClawEmbeddedAgent({
           </CardHeader>
           <CardContent>
             {jobsLoading ? (
-              <div className="space-y-3">
+              <div
+                className="space-y-3"
+                role="status"
+                aria-live="polite"
+                aria-label="Loading jobs"
+                aria-busy="true"
+              >
+                <div className="flex gap-4 border-b border-border pb-3">
+                  <Skeleton className="h-4 flex-1 max-w-[180px]" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-14 w-full" />
+                  <div key={i} className="flex gap-4 items-center">
+                    <Skeleton className="h-10 flex-1 max-w-[180px]" />
+                    <Skeleton className="h-6 w-16 rounded" />
+                    <Skeleton className="h-6 w-20 rounded" />
+                  </div>
                 ))}
               </div>
+            ) : jobsError ? (
+              <div
+                className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-accent/50 bg-accent/5 py-12 px-4 text-center"
+                role="alert"
+                aria-label="Failed to load jobs"
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
+                  <AlertCircle className="h-8 w-8 text-accent" aria-hidden />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Failed to load jobs
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {jobsQueryError instanceof Error
+                      ? jobsQueryError.message
+                      : 'Something went wrong. Please try again.'}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => refetchJobs()}
+                  aria-label="Retry loading jobs"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry
+                </Button>
+              </div>
             ) : jobs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-4 py-12">
+              <div
+                className="flex flex-col items-center justify-center gap-4 py-12"
+                role="status"
+                aria-label="No jobs yet"
+              >
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
-                  <FileText className="h-8 w-8 text-muted-foreground" />
+                  <FileText className="h-8 w-8 text-muted-foreground" aria-hidden />
                 </div>
                 <div className="text-center">
                   <h3 className="font-semibold">No jobs yet</h3>
