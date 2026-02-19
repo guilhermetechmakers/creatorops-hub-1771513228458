@@ -475,6 +475,21 @@ export function OpenClawEmbeddedAgent({
   )
 }
 
+function getJobStatusVariant(
+  status: string
+): 'success' | 'destructive' | 'warning' | 'secondary' {
+  switch (status) {
+    case 'completed':
+      return 'success'
+    case 'failed':
+      return 'destructive'
+    case 'processing':
+      return 'warning'
+    default:
+      return 'secondary'
+  }
+}
+
 function JobRow({
   job,
   onSelect,
@@ -484,15 +499,6 @@ function JobRow({
   onSelect: () => void
   isSelected: boolean
 }) {
-  const statusColor =
-    job.status === 'completed'
-      ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-      : job.status === 'failed'
-        ? 'bg-accent/20 text-accent'
-        : job.status === 'processing'
-          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-          : 'bg-secondary text-muted-foreground'
-
   return (
     <TableRow
       className={cn(
@@ -510,7 +516,7 @@ function JobRow({
         </Badge>
       </TableCell>
       <TableCell>
-        <Badge className={cn('capitalize', statusColor)}>
+        <Badge variant={getJobStatusVariant(job.status)} className="capitalize">
           {formatJobStatus(job.status)}
         </Badge>
       </TableCell>
@@ -566,15 +572,7 @@ function JobDetail({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge
-            className={
-              job.status === 'completed'
-                ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-                : job.status === 'failed'
-                  ? 'bg-accent/20 text-accent'
-                  : 'bg-secondary'
-            }
-          >
+          <Badge variant={getJobStatusVariant(job.status)}>
             {formatJobStatus(job.status)}
           </Badge>
           {job.confidence_score != null && (
