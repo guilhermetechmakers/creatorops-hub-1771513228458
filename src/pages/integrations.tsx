@@ -114,6 +114,7 @@ export function IntegrationsPage() {
           <IntegrationHealthPanel
             issues={healthIssues}
             lastSyncByType={Object.keys(lastSyncByType).length > 0 ? lastSyncByType : undefined}
+            onEmptyAction={() => setActiveTab('integrations')}
           />
         </TabsContent>
 
