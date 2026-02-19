@@ -29,6 +29,8 @@
     /* Gradient grays for folder/card accents */
     --gradient-start: 90 90 90; /* #5A5A5A */
     --gradient-end: 160 160 160; /* #A0A0A0 */
+    /* Overlay for modals, dialogs, drawers */
+    --overlay: 0 0 0;
   }
 
   * {

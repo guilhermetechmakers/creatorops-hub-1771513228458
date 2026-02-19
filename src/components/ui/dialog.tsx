@@ -7,6 +7,7 @@ interface DialogContextValue {
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null)
+const DialogContentContext = React.createContext<string | null>(null)
 
 interface DialogProps {
   open?: boolean
@@ -58,51 +59,66 @@ function DialogTrigger({ asChild, children }: DialogTriggerProps) {
   )
 }
 
-const DialogContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { onEscapeKeyDown?: (e: KeyboardEvent) => void }
->(({ className, children, onEscapeKeyDown, ...props }, ref) => {
-  const { open, onOpenChange } = useDialog()
+interface DialogContentProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  onEscapeKeyDown?: (e: KeyboardEvent) => void
+  /** Accessible name when DialogTitle is not used */
+  'aria-label'?: string
+}
 
-  React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onEscapeKeyDown?.(e)
-        onOpenChange(false)
+const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
+  ({ className, children, onEscapeKeyDown, 'aria-label': ariaLabel, ...props }, ref) => {
+    const { open, onOpenChange } = useDialog()
+    const dialogId = React.useId()
+
+    React.useEffect(() => {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onEscapeKeyDown?.(e)
+          onOpenChange(false)
+        }
       }
-    }
-    if (open) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-  }, [open, onOpenChange, onEscapeKeyDown])
+      if (open) {
+        document.addEventListener('keydown', handleEscape)
+        return () => document.removeEventListener('keydown', handleEscape)
+      }
+    }, [open, onOpenChange, onEscapeKeyDown])
 
-  if (!open) return null
+    if (!open) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/50"
-        aria-hidden
-        onClick={() => onOpenChange(false)}
-      />
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        className={cn(
-          'relative z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-card',
-          'animate-in-up',
-          className
-        )}
-        onClick={(e) => e.stopPropagation()}
-        {...props}
-      >
-        {children}
-      </div>
-    </div>
-  )
-})
+    const titleId = `${dialogId}-title`
+    const descriptionId = `${dialogId}-description`
+
+    return (
+      <DialogContentContext.Provider value={dialogId}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-overlay/50"
+            aria-hidden
+            onClick={() => onOpenChange(false)}
+          />
+          <div
+            ref={ref}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={ariaLabel ? undefined : titleId}
+            aria-describedby={descriptionId}
+            aria-label={ariaLabel}
+            className={cn(
+              'relative z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card',
+              'animate-in-up',
+              className
+            )}
+            onClick={(e) => e.stopPropagation()}
+            {...props}
+          >
+            {children}
+          </div>
+        </div>
+      </DialogContentContext.Provider>
+    )
+  }
+)
 DialogContent.displayName = 'DialogContent'
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
@@ -116,16 +132,34 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   />
 )
 
-const DialogTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h2 className={cn('text-lg font-semibold', className)} {...props} />
-)
+const DialogTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+  const dialogId = React.useContext(DialogContentContext)
+  const id = dialogId ? `${dialogId}-title` : undefined
+  return (
+    <h2
+      id={id}
+      className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+      {...props}
+    />
+  )
+}
+DialogTitle.displayName = 'DialogTitle'
 
 const DialogDescription = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={cn('text-sm text-muted-foreground', className)} {...props} />
-)
+}: React.HTMLAttributes<HTMLParagraphElement>) => {
+  const dialogId = React.useContext(DialogContentContext)
+  const id = dialogId ? `${dialogId}-description` : undefined
+  return (
+    <p
+      id={id}
+      className={cn('text-sm text-muted-foreground', className)}
+      {...props}
+    />
+  )
+}
+DialogDescription.displayName = 'DialogDescription'
 
 export {
   Dialog,

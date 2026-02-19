@@ -36,6 +36,7 @@ export default {
         success: 'rgb(var(--success) / <alpha-value>)',
         destructive: 'rgb(var(--destructive) / <alpha-value>)',
         warning: 'rgb(var(--warning) / <alpha-value>)',
+        overlay: 'rgb(var(--overlay) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
