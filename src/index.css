@@ -22,6 +22,10 @@
     --border: 49 49 52; /* #313134 */
     --input: 49 49 52;
     --ring: 255 59 48;
+    /* Semantic colors */
+    --success: 52 199 89; /* #34C759 - connected, success states */
+    --destructive: 255 59 48; /* #FF3B30 - errors, destructive actions */
+    --warning: 255 204 0; /* #FFCC00 - warnings */
     /* Gradient grays for folder/card accents */
     --gradient-start: 90 90 90; /* #5A5A5A */
     --gradient-end: 160 160 160; /* #A0A0A0 */
