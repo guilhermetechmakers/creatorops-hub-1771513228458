@@ -67,6 +67,18 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        'blob-pulse': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.05)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.3s ease-out forwards',
@@ -74,6 +86,9 @@ export default {
         shimmer: 'shimmer 1.5s ease-in-out infinite',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
         pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'gradient-shift': 'gradient-shift 8s ease infinite',
+        float: 'float 4s ease-in-out infinite',
+        'blob-pulse': 'blob-pulse 6s ease-in-out infinite',
       },
       transitionDuration: {
         200: '200ms',

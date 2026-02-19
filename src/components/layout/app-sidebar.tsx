@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Image,
   User,
+  CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +30,7 @@ const navItems = [
   { to: '/dashboard/integrations', icon: Plug, label: 'Integrations' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
   { to: '/dashboard/profile', icon: User, label: 'Profile' },
+  { to: '/checkout', icon: CreditCard, label: 'Billing' },
 ]
 
 export function AppSidebar() {

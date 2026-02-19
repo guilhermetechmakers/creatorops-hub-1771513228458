@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/contexts/auth-context'
@@ -90,7 +90,7 @@ function App() {
               <Route path="admin" element={<AdminPage />} />
             </Route>
 
-            {/* Checkout - protected */}
+            {/* Checkout / Billing - protected */}
             <Route
               path="/checkout"
               element={
@@ -101,6 +101,7 @@ function App() {
             >
               <Route index element={<CheckoutPage />} />
             </Route>
+            <Route path="/checkout-billing" element={<Navigate to="/checkout" replace />} />
           </Routes>
         </BrowserRouter>
         <Toaster position="top-right" richColors closeButton />
