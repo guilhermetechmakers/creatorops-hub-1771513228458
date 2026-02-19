@@ -87,7 +87,6 @@ export function PaymentForm({
   formId = 'checkout-form',
   onCouponApply,
   onSubmit,
-  isLoading: _isLoading = false,
 }: PaymentFormProps) {
   const [couponCode, setCouponCode] = useState('')
   const [couponApplied, setCouponApplied] = useState(false)
@@ -96,7 +95,7 @@ export function PaymentForm({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting: _isSubmitting },
+    formState: { errors },
   } = useForm<BillingForm>({
     resolver: zodResolver(billingSchema),
     defaultValues: {

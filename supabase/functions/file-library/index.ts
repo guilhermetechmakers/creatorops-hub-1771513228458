@@ -4,7 +4,6 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BUCKET = 'file-library'
-const ALLOWED_TYPES = ['image/', 'video/', 'audio/', 'application/pdf', 'text/']
 
 function corsHeaders() {
   return {
@@ -57,7 +56,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'presigned-url': {
-        const { filename, contentType, fileSize } = body
+        const { filename } = body
         if (!filename || typeof filename !== 'string') {
           return errorResponse('filename is required')
         }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -23,21 +23,21 @@ const schema = z
 
 type FormData = z.infer<typeof schema>
 
+function getInitialValidToken(): boolean | null {
+  if (typeof window === 'undefined') return null
+  const hashParams = new URLSearchParams(window.location.hash.substring(1))
+  return hashParams.get('type') === 'recovery' || !!hashParams.get('access_token')
+}
+
 export function PasswordResetConfirmPage() {
   const [isSuccess, setIsSuccess] = useState(false)
-  const [isValidToken, setIsValidToken] = useState<boolean | null>(null)
+  const [isValidToken] = useState<boolean | null>(getInitialValidToken)
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
-
-  useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const hasRecoveryHash = hashParams.get('type') === 'recovery' || !!hashParams.get('access_token')
-    setIsValidToken(hasRecoveryHash)
-  }, [])
 
   const onSubmit = async (data: FormData) => {
     const { error } = await supabase.auth.updateUser({ password: data.password })

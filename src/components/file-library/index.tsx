@@ -62,19 +62,19 @@ interface UploadProgress {
   error?: string
 }
 
-function getFileIcon(type: string) {
-  const category = getFileTypeCategory(type)
+function FileTypeIcon({ fileType, className }: { fileType: string; className?: string }) {
+  const category = getFileTypeCategory(fileType)
   switch (category) {
     case 'image':
-      return FileImage
+      return <FileImage className={className} aria-hidden />
     case 'video':
-      return FileVideo
+      return <FileVideo className={className} aria-hidden />
     case 'document':
-      return FileText
+      return <FileText className={className} aria-hidden />
     case 'audio':
-      return Music
+      return <Music className={className} aria-hidden />
     default:
-      return File
+      return <File className={className} aria-hidden />
   }
 }
 
@@ -93,7 +93,6 @@ function AssetCard({
   onDelete: (asset: FileLibraryAsset) => void
   onAttach: (asset: FileLibraryAsset) => void
 }) {
-  const Icon = getFileIcon(asset.file_type)
   const isImage = getFileTypeCategory(asset.file_type) === 'image'
 
   return (
@@ -113,11 +112,11 @@ function AssetCard({
         >
           {isImage ? (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-secondary to-secondary/70">
-              <Icon className="h-12 w-12 text-muted-foreground" />
+              <FileTypeIcon fileType={asset.file_type} className="h-12 w-12 text-muted-foreground" />
             </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Icon className="h-12 w-12 text-muted-foreground" />
+              <FileTypeIcon fileType={asset.file_type} className="h-12 w-12 text-muted-foreground" />
             </div>
           )}
         </div>

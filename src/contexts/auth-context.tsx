@@ -36,7 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    refreshSession().finally(() => setIsLoading(false))
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- setIsLoading runs in promise callback, not synchronously */
+    void refreshSession().then(() => setIsLoading(false))
 
     const {
       data: { subscription },
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook must be colocated with AuthProvider for context access
 export function useAuthContext() {
   const ctx = useContext(AuthContext)
   if (!ctx) {

@@ -59,8 +59,31 @@ function DropdownMenuTrigger({ asChild, children, className }: DropdownMenuTrigg
     'aria-expanded': open,
   }
 
-  if (asChild && React.isValidElement(children)) {
-    const childProps = (children as React.ReactElement).props
+  const childProps = asChild && React.isValidElement(children)
+    ? (children as React.ReactElement<{
+        ref?: React.Ref<HTMLButtonElement>
+        onClick?: (e: React.MouseEvent) => void
+        className?: string
+        'aria-haspopup'?: string
+        'aria-expanded'?: boolean
+      }>).props
+    : null
+
+  const mergedRefCallback = React.useCallback(
+    (el: HTMLButtonElement | null) => {
+      ;(triggerRef as React.MutableRefObject<HTMLButtonElement | null>).current = el
+      const childRef = childProps?.ref
+      if (typeof childRef === 'function') {
+        childRef(el)
+      } else if (childRef != null) {
+        /* eslint-disable-next-line react-hooks/immutability -- ref.current is designed to be mutable */
+        ;(childRef as React.MutableRefObject<HTMLButtonElement | null>).current = el
+      }
+    },
+    [triggerRef, childProps?.ref]
+  )
+
+  if (asChild && React.isValidElement(children) && childProps) {
     return React.cloneElement(
       children as React.ReactElement<{
         ref?: React.Ref<HTMLButtonElement>
@@ -70,7 +93,7 @@ function DropdownMenuTrigger({ asChild, children, className }: DropdownMenuTrigg
         'aria-expanded'?: boolean
       }>,
       {
-        ref: triggerRef as React.Ref<HTMLButtonElement>,
+        ref: mergedRefCallback,
         onClick: handleClick,
         className: cn(className, childProps.className),
         ...triggerProps,
