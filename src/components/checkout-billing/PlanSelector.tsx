@@ -1,5 +1,8 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { CreditCard, AlertCircle, RefreshCw } from 'lucide-react'
 
 export interface Plan {
   id: string
@@ -40,42 +43,142 @@ export interface PlanSelectorProps {
   selectedPlanId?: string
   onSelectPlan?: (plan: Plan) => void
   isLoading?: boolean
+  error?: string | null
+  onRetry?: () => void
 }
+
+const PLAN_SELECTOR_HEADING_ID = 'plan-selector-heading'
 
 export function PlanSelector({
   plans = defaultPlans,
   selectedPlanId,
   onSelectPlan,
   isLoading = false,
+  error = null,
+  onRetry,
 }: PlanSelectorProps) {
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <h2 className="font-semibold">Select plan</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+      <section
+        className="space-y-4"
+        aria-labelledby={PLAN_SELECTOR_HEADING_ID}
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <h2
+          id={PLAN_SELECTOR_HEADING_ID}
+          className="text-lg font-semibold text-foreground sm:text-xl"
+        >
+          Select plan
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i} className="overflow-hidden border-border">
               <CardContent className="p-6">
-                <div className="mb-4 h-4 w-24 rounded bg-muted" />
-                <div className="mb-2 h-8 w-16 rounded bg-muted" />
-                <div className="space-y-2">
+                <Skeleton className="mb-4 h-4 w-24" />
+                <Skeleton className="mb-2 h-8 w-16" />
+                <div className="mt-4 space-y-2">
                   {[1, 2, 3].map((j) => (
-                    <div key={j} className="h-3 w-full rounded bg-muted" />
+                    <Skeleton key={j} className="h-3 w-full" />
                   ))}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section
+        className="space-y-4"
+        aria-labelledby={PLAN_SELECTOR_HEADING_ID}
+        aria-describedby="plan-selector-error"
+      >
+        <h2
+          id={PLAN_SELECTOR_HEADING_ID}
+          className="text-lg font-semibold text-foreground sm:text-xl"
+        >
+          Select plan
+        </h2>
+        <div
+          id="plan-selector-error"
+          className="flex flex-col items-center justify-center rounded-lg border border-border bg-card px-6 py-12 text-center"
+          role="alert"
+        >
+          <AlertCircle
+            className="mb-4 h-12 w-12 text-destructive"
+            aria-hidden
+          />
+          <p className="mb-2 text-base font-medium text-foreground">
+            Unable to load plans
+          </p>
+          <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+            {error}
+          </p>
+          {onRetry && (
+            <Button
+              variant="outline"
+              onClick={onRetry}
+              className="gap-2"
+              aria-label="Retry loading plans"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden />
+              Retry
+            </Button>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  if (!plans || plans.length === 0) {
+    return (
+      <section
+        className="space-y-4"
+        aria-labelledby={PLAN_SELECTOR_HEADING_ID}
+        aria-describedby="plan-selector-empty"
+      >
+        <h2
+          id={PLAN_SELECTOR_HEADING_ID}
+          className="text-lg font-semibold text-foreground sm:text-xl"
+        >
+          Select plan
+        </h2>
+        <div
+          id="plan-selector-empty"
+          className="flex flex-col items-center justify-center rounded-lg border border-border bg-card px-6 py-12 text-center"
+        >
+          <CreditCard
+            className="mb-4 h-12 w-12 text-muted-foreground"
+            aria-hidden
+          />
+          <p className="mb-2 text-base font-medium text-foreground">
+            No plans available
+          </p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Subscription plans will be available soon. Please check back later or contact support for assistance.
+          </p>
+        </div>
+      </section>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="font-semibold">Select plan</h2>
+    <section
+      className="space-y-4"
+      aria-labelledby={PLAN_SELECTOR_HEADING_ID}
+    >
+      <h2
+        id={PLAN_SELECTOR_HEADING_ID}
+        className="text-lg font-semibold text-foreground sm:text-xl"
+      >
+        Select plan
+      </h2>
       <div
-        className="grid gap-4 sm:grid-cols-3"
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         role="radiogroup"
         aria-label="Subscription plan selection"
       >
@@ -85,13 +188,15 @@ export function PlanSelector({
             <Card
               key={plan.id}
               className={cn(
-                'cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-card-hover',
+                'cursor-pointer border-border transition-all duration-300',
+                'hover:scale-[1.02] hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 plan.recommended && 'border-accent ring-2 ring-accent/30',
                 isSelected && 'ring-2 ring-primary'
               )}
               onClick={() => onSelectPlan?.(plan)}
               role="radio"
               aria-checked={isSelected}
+              aria-label={`${plan.name} plan, $${plan.price} per ${plan.interval === 'month' ? 'month' : 'year'}`}
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -102,11 +207,15 @@ export function PlanSelector({
             >
               <CardContent className="p-6">
                 {plan.recommended && (
-                  <span className="mb-2 block text-xs font-medium text-accent">Recommended</span>
+                  <span className="mb-2 block text-xs font-medium text-accent">
+                    Recommended
+                  </span>
                 )}
-                <div className="font-semibold">{plan.name}</div>
+                <div className="font-semibold text-foreground">{plan.name}</div>
                 <div className="mt-2">
-                  <span className="text-2xl font-bold">${plan.price}</span>
+                  <span className="text-2xl font-bold text-foreground">
+                    ${plan.price}
+                  </span>
                   <span className="text-sm font-normal text-muted-foreground">
                     /{plan.interval === 'month' ? 'mo' : 'yr'}
                   </span>
@@ -121,6 +230,6 @@ export function PlanSelector({
           )
         })}
       </div>
-    </div>
+    </section>
   )
 }
